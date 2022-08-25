@@ -14,9 +14,6 @@ import com.appodeal.ads.InterstitialCallbacks;
 import com.appodeal.ads.NativeAd;
 import com.appodeal.ads.NativeCallbacks;
 import com.appodeal.ads.RewardedVideoCallbacks;
-import com.appodeal.ads.native_ad.views.NativeAdViewAppWall;
-import com.appodeal.ads.native_ad.views.NativeAdViewContentStream;
-import com.appodeal.ads.native_ad.views.NativeAdViewNewsFeed;
 
 import java.util.List;
 
@@ -40,9 +37,9 @@ public class MainActivity extends AppCompatActivity {
         rewarded_video_button   = findViewById(R.id.rewarded_button);
         native_button           = findViewById(R.id.native_button);
 
-        banner_string       = getString(R.string.banner_button);
-        interstitial_string = getString(R.string.interstitial_button);
-        reward_video_string = getString(R.string.rewarded_button);
+        banner_string           = getString(R.string.banner_button);
+        interstitial_string     = getString(R.string.interstitial_button);
+        reward_video_string     = getString(R.string.rewarded_button);
     }
     /*
         Функции на клик кнопок
@@ -217,11 +214,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onNativeLoaded() {
                 if(!native_lock){
-                    NativeAdViewNewsFeed nav_nf = (NativeAdViewNewsFeed) findViewById(R.id.native_ad_view_news_feed);
-                    nativeAds = Appodeal.getNativeAds(3);
-                    for (NativeAd ad: nativeAds) {
-                        nav_nf.setNativeAd(ad);
-                    }
+//                    NativeAdViewNewsFeed nav_nf = (NativeAdViewNewsFeed) findViewById(R.id.native_ad_view_news_feed);
+//                    nativeAds = Appodeal.getNativeAds(3);
+//                    for (NativeAd ad: nativeAds) {
+//                        nav_nf.setNativeAd(ad);
+//                    }
                     native_lock = true;
                 }
 
