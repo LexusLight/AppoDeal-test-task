@@ -2,6 +2,8 @@ package com.example.appodealtest1337;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -15,69 +17,156 @@ import com.appodeal.ads.NativeAd;
 import com.appodeal.ads.NativeCallbacks;
 import com.appodeal.ads.RewardedVideoCallbacks;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    int banner_count = 0, video_count = 3;
-    Button banner_button, interstitial_button, rewarded_video_button, native_button;
-    String banner_string, interstitial_string, reward_video_string;
-    boolean interstitial_lock,native_lock = false;
-    List<NativeAd> nativeAds;
+    int bannerCount = 0, videoCount = 3;
+    Button bannerButton, interstitialButton, rewardedVideoButton, nativeButton;
+    String bannerString, interstitialString, rewardVideoString;
+    boolean interstitialLock = false;
+
+    public RecyclerView recyclerView;
+    public List<NativeAd> nativeBuffer;
+    public List<NativeAd> nativeAds = new ArrayList<>();
+    private final RecyclerView.Adapter<RecyclerView.ViewHolder> adapter = new NativeAdapter(this.nativeAds);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        bannerButton = findViewById(R.id.banner_button);
+        interstitialButton = findViewById(R.id.interstitial_button);
+        rewardedVideoButton = findViewById(R.id.rewarded_button);
+        nativeButton = findViewById(R.id.native_button);
+
+        bannerString = getString(R.string.banner_button);
+        interstitialString = getString(R.string.interstitial_button);
+        rewardVideoString = getString(R.string.rewarded_button);
+
+        recyclerView = findViewById(R.id.recycler_view);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
+
         configureAds(); //Все конфигурации вынесены в нижнюю функцию
-
-        banner_button           = findViewById(R.id.banner_button);
-        interstitial_button     = findViewById(R.id.interstitial_button);
-        rewarded_video_button   = findViewById(R.id.rewarded_button);
-        native_button           = findViewById(R.id.native_button);
-
-        banner_string           = getString(R.string.banner_button);
-        interstitial_string     = getString(R.string.interstitial_button);
-        reward_video_string     = getString(R.string.rewarded_button);
     }
+
+
     /*
-        Функции на клик кнопок
+        Стандартные событийные функции
     */
     public void showBanner(View view){
         Appodeal.show(this, Appodeal.BANNER_TOP);
-        banner_count = 0;
+        bannerCount = 0;
     }
+
+
     public void showInterstitial(View view){
         hideAds();
         Appodeal.show(this, Appodeal.INTERSTITIAL);
     }
+
+
     public void showRewardedVideo(View view){
         hideAds();
         Appodeal.show(this, Appodeal.REWARDED_VIDEO);
     }
+
+
     public void showNativeAd(View view){
-        Appodeal.show(this, Appodeal.NATIVE);
+        hideAds();
+        recyclerView.setVisibility(View.VISIBLE);
+        bannerButton.setVisibility(View.GONE);
+        interstitialButton.setVisibility(View.GONE);
+        rewardedVideoButton.setVisibility(View.GONE);
+        nativeButton.setVisibility(View.GONE);
     }
+
+
     public void hideAdsButton(View view){
         hideAds();
     }
+
+
     public void hideAds(){
         Appodeal.hide(this,Appodeal.INTERSTITIAL | Appodeal.BANNER | Appodeal.REWARDED_VIDEO | Appodeal.NATIVE);
+        recyclerView.setVisibility(View.GONE);
+        bannerButton.setVisibility(View.VISIBLE);
+        interstitialButton.setVisibility(View.VISIBLE);
+        rewardedVideoButton.setVisibility(View.VISIBLE);
+        nativeButton.setVisibility(View.VISIBLE);
     }
+
+
     /*
-            Функция с конфигурацией и поведением рекламы.
+            Конфигурация + все калбеки
     */
-    public void configureAds(){
-        Appodeal.initialize(this,"efc6d60da1164727c4c4ddded5aa9ae1a178d16efd197f28",Appodeal.INTERSTITIAL | Appodeal.BANNER |Appodeal.REWARDED_VIDEO | Appodeal.NATIVE);
-        Appodeal.cache(this, Appodeal.NATIVE, 3);
+    public void configureAds()
+    {
+
+        Appodeal.initialize(this,"efc6d60da1164727c4c4ddded5aa9ae1a178d16efd197f28", Appodeal.BANNER | Appodeal.INTERSTITIAL | Appodeal.REWARDED_VIDEO | Appodeal.NATIVE);
+        Appodeal.cache(this, Appodeal.NATIVE, 4);
+
+        //При развороте экрана, наши активити перезагружаются. При перевороте заново их включаем
+        if(Appodeal.isLoaded(Appodeal.BANNER)){
+            bannerButton.setEnabled(true);
+        }
+        if(Appodeal.isLoaded(Appodeal.INTERSTITIAL)){
+            interstitialButton.setEnabled(true);
+        }
+        if(Appodeal.isLoaded(Appodeal.REWARDED_VIDEO)){
+            rewardedVideoButton.setEnabled(true);
+        }
+        if(Appodeal.isLoaded(Appodeal.NATIVE)||nativeAds.size()>0){
+            nativeButton.setEnabled(true);
+        }
+
+        Appodeal.setNativeCallbacks(new NativeCallbacks() {
+            @Override
+            public void onNativeLoaded() {
+                nativeButton.setEnabled(true);
+
+                nativeBuffer = Appodeal.getNativeAds(1);
+                if(nativeBuffer.size() > 0 && nativeAds.size() < 4){
+                    nativeAds.add(nativeBuffer.get(nativeBuffer.size()-1));
+                    adapter.notifyItemInserted(0);
+                    nativeBuffer.remove(nativeBuffer.size()-1);
+                }
+            }
+
+            @Override
+            public void onNativeFailedToLoad() {
+            }
+
+            @Override
+            public void onNativeShown(NativeAd nativeAd) {
+
+            }
+
+            @Override
+            public void onNativeShowFailed(NativeAd nativeAd) {
+
+            }
+
+            @Override
+            public void onNativeClicked(NativeAd nativeAd) {
+
+            }
+
+            @Override
+            public void onNativeExpired() {
+
+            }
+        });
 
         Appodeal.setBannerCallbacks(new BannerCallbacks() {
 
             @Override
             public void onBannerLoaded(int height, boolean isPrecache) {
 
-                banner_button.setEnabled(true);
+                bannerButton.setEnabled(true);
             }
 
             @Override
@@ -87,12 +176,12 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onBannerShown() {
-                banner_count++;
-                banner_button.setText(banner_string+" ("+banner_count+")");
-                if(banner_count > 5){
+                bannerCount++;
+                bannerButton.setText(bannerString +" ("+ bannerCount +")");
+                if(bannerCount > 5){
                     hideAds();
-                    banner_button.setText(banner_string);
-                    banner_count = 0;
+                    bannerButton.setText(bannerString);
+                    bannerCount = 0;
                 }
             }
 
@@ -118,8 +207,8 @@ public class MainActivity extends AppCompatActivity {
         Appodeal.setInterstitialCallbacks(new InterstitialCallbacks() {
             @Override
             public void onInterstitialLoaded(boolean isPrecache) {
-                if(!interstitial_lock){
-                    interstitial_button.setEnabled(true);
+                if(!interstitialLock){
+                    interstitialButton.setEnabled(true);
                 }
             }
 
@@ -129,8 +218,8 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onInterstitialShown() {
-                interstitial_button.setEnabled(false);
-                interstitial_lock = true;
+                interstitialButton.setEnabled(false);
+                interstitialLock = true;
             }
 
             @Override
@@ -146,13 +235,13 @@ public class MainActivity extends AppCompatActivity {
             public void onInterstitialClosed() {
                 new CountDownTimer(60000,1000) {
                     public void onTick(long millisUntilFinished) {
-                        interstitial_button.setText(interstitial_string+" ("+millisUntilFinished / 1000+")");
+                        interstitialButton.setText(interstitialString +" ("+millisUntilFinished / 1000+")");
                         // logic to set the EditText could go here
                     }
                     public void onFinish() {
-                        interstitial_button.setText(interstitial_string);
-                        interstitial_button.setEnabled(true);
-                        interstitial_lock = false;
+                        interstitialButton.setText(interstitialString);
+                        interstitialButton.setEnabled(true);
+                        interstitialLock = false;
                     }
                 }.start();
             }
@@ -166,8 +255,8 @@ public class MainActivity extends AppCompatActivity {
         Appodeal.setRewardedVideoCallbacks(new RewardedVideoCallbacks() {
             @Override
             public void onRewardedVideoLoaded(boolean isPrecache) {
-                if(video_count > 0) rewarded_video_button.setEnabled(true);
-                rewarded_video_button.setText(reward_video_string+" ("+(video_count)+")");
+                if(videoCount > 0) rewardedVideoButton.setEnabled(true);
+                rewardedVideoButton.setText(rewardVideoString +" ("+(videoCount)+")");
             }
 
             @Override
@@ -177,11 +266,11 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onRewardedVideoShown() {
-                video_count--;
-                if(video_count <= 0){
-                    rewarded_video_button.setEnabled(false);
+                videoCount--;
+                if(videoCount <= 0){
+                    rewardedVideoButton.setEnabled(false);
                 }
-                rewarded_video_button.setText(reward_video_string+" ("+(video_count)+")");
+                rewardedVideoButton.setText(rewardVideoString +" ("+(videoCount)+")");
             }
 
             @Override
@@ -206,46 +295,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onRewardedVideoClicked() {
-
-            }
-        });
-
-        Appodeal.setNativeCallbacks(new NativeCallbacks() {
-            @Override
-            public void onNativeLoaded() {
-                if(!native_lock){
-//                    NativeAdViewNewsFeed nav_nf = (NativeAdViewNewsFeed) findViewById(R.id.native_ad_view_news_feed);
-//                    nativeAds = Appodeal.getNativeAds(3);
-//                    for (NativeAd ad: nativeAds) {
-//                        nav_nf.setNativeAd(ad);
-//                    }
-                    native_lock = true;
-                }
-
-            }
-
-            @Override
-            public void onNativeFailedToLoad() {
-
-            }
-
-            @Override
-            public void onNativeShown(NativeAd nativeAd) {
-
-            }
-
-            @Override
-            public void onNativeShowFailed(NativeAd nativeAd) {
-
-            }
-
-            @Override
-            public void onNativeClicked(NativeAd nativeAd) {
-
-            }
-
-            @Override
-            public void onNativeExpired() {
 
             }
         });
